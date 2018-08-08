@@ -1,0 +1,62 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <meta name="viewport" content="width=device-width,height=device-height, user-scalable=no" />
+  <title>demo</title>
+  <link rel="stylesheet" href="polygon.css" />
+  <script src="jquery-3.3.1.min.js"></script>
+  <script src="polygon.min.js"></script>
+</head>
+<body>
+  <div>
+    creaating new polygone = ctrl + mousedown
+  </div>
+<div>
+    <canvas width="500" height="500" id='map' style="border:1px solid black;"></canvas>
+</div>
+<div>
+    <select id="pType">
+      <option value="1" selected>Pink Zone</option>
+      <option value="2">Blue Zone</option>
+      <option value="3">Black Zone</option>
+    </select>
+</div>
+<div>
+  <textarea id="r"></textarea>
+  <input type="button" id="getjson" value="get json" />
+</div>
+<script type="text/javascript">
+    var polygon = $('#map').polygon({
+      colors: {
+        bone: {
+            selected: 'red',
+            default: 'rgba(255,0,0,0.6)'
+        },
+        polygon: {
+            selected: 'rgba(255,0,0,0.6)',
+            default: 'rgba(0,255,0,0.6)'
+        },
+        polygonFromType: {
+            1: {
+                selected: 'rgb(255,105,180)',
+                default: 'rgba(255,105,180,0.6)'
+            },
+            2: {
+                selected: 'blue',
+                default: 'rgba(0,0,255,0.6)'
+            },
+            3: {
+                selected: 'black',
+                default: 'rgba(0,0,0,0.6)'
+            }
+        }
+      },
+      polygonSelectId: '#pType'
+    });
+    $('#getjson').click(function (){
+      $('#r').val(polygon.getJson());
+    });
+</script>
+</body>
+</html>
