@@ -31,15 +31,36 @@ $.fn.polygon = function(properties = {}) {
                 }
             }
         },
-        polygonSelectId: '#polygonType'
+        polygonSelectId: '#polygonType',
+        editMode: '#editMode'
     }, properties);
     var polygons = [];
+    var __editMode = false;
 
     function invalidateAll()
     {
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        polygons.forEach(drawPolygon);
+        if (__editMode)
+        {
+            currentElement.css('border', '1px solid red');
+        }
+        else
+        {
+            currentElement.css('border', '1px solid black');
+        }
+
+        polygons = jQuery.grep(polygons, function(polygonItem)
+        {
+            var result = polygonItem.points.length > 0;
+            if (result)
+            {
+                drawPolygon(polygonItem);
+            }
+
+            return result;
+        });
+        // polygons.forEach(drawPolygon);
     }
     function drawPolygon(polygonItem)
     {
@@ -50,14 +71,25 @@ $.fn.polygon = function(properties = {}) {
         {
             context.lineTo(p.x, p.y);
         });
+        context.lineTo(polygonItem.points[0].x, polygonItem.points[0].y);
         
         var defaultPolygon = true;
+
         for(var index in globalProperties.colors.polygonFromType)
         {
             if (polygonItem.polygonType == index)
             {
                 var type = globalProperties.colors.polygonFromType[index];
-                context.fillStyle = polygonItem.isSelected ? type.selected : type.default;
+
+                if (__editMode)
+                {
+                    context.fillStyle = polygonItem.isSelected ? globalProperties.colors.polygon.selected : type.default;
+                }
+                else
+                {
+                    context.fillStyle = polygonItem.isSelected ? type.selected : type.default;
+                }
+
                 defaultPolygon = false;
                 break;
             }
@@ -98,16 +130,7 @@ $.fn.polygon = function(properties = {}) {
         };
         p.points.push(point);
 
-        var point2 = {
-            x: x,
-            y: y,
-            isSelected: false
-        };
-        p.points.push(point2);
-
         polygons.push(p);
-
-        invalidateAll();
 
         return polygons.length - 1;
     }
@@ -118,9 +141,8 @@ $.fn.polygon = function(properties = {}) {
             y: y,
             isSelected: false
         };
-        polygons[polygonIndex].points.splice(polygons[polygonIndex].points.length - 2, 0, point);
 
-        invalidateAll();
+        polygons[polygonIndex].points.splice(polygons[polygonIndex].points.length - 1, 0, point);
     }
 
     function hasPolygonTouch(x, y, polygonIndex)
@@ -149,7 +171,7 @@ $.fn.polygon = function(properties = {}) {
         var points = polygons[polygonIndex].points;
 
         // because first element = last
-        for(var i = 0; i < points.length - 1; i++)
+        for(var i = 0; i < points.length; i++)
         {
             // bone located is center point
             var bone = {
@@ -174,6 +196,20 @@ $.fn.polygon = function(properties = {}) {
         var _indexTouchedBone = -1;
         var startX = 0, startY = 0;
 
+        $(globalProperties.editMode).click(function (event)
+        {
+            __editMode = !__editMode;
+
+            if (_indexTouchedPolygon > -1)
+            {
+                polygons[_indexTouchedPolygon].isSelected = false;
+            }
+
+            _indexTouchedPolygon = -1;
+
+            invalidateAll();
+        });
+
         $(currentElement).mousedown(function (event)
         {
             event.preventDefault();
@@ -185,15 +221,41 @@ $.fn.polygon = function(properties = {}) {
                 return;
             }
 
+            if (__editMode)
+            {
+                // select polygon editing
+                if (_indexTouchedPolygon == -1)
+                {
+                    for(var i = 0; i < polygons.length; i++)
+                    {
+                        if (hasPolygonTouch(x, y, i))
+                        {
+                            _indexTouchedPolygon = i;
+                            polygons[i].isSelected = true;
+                            break;
+                        }
+                    }
+                }
+                else if (event.ctrlKey)
+                {
+                    addPointToPolygon(_indexTouchedPolygon, x, y);
+                }
+
+                invalidateAll();
+                return;
+            }
+
             if (event.ctrlKey && _indexTouchedPolygon == -1)
             {
                 _indexTouchedPolygon = createNewPolygon($(globalProperties.polygonSelectId).val(), x, y);
+                invalidateAll();
                 return;
             }
 
             if (event.ctrlKey && _indexTouchedPolygon > -1)
             {
                 addPointToPolygon(_indexTouchedPolygon, x, y);
+                invalidateAll();
                 return;
             }
 
@@ -202,6 +264,12 @@ $.fn.polygon = function(properties = {}) {
                 var boneIndex = getIndexBoneTouch(x, y, i);
                 if (boneIndex > -1)
                 {
+                    if (event.shiftKey)
+                    {
+                        polygons[i].points.splice(boneIndex, 1);
+                        break;
+                    }
+
                     startX = x;
                     startY = y;
                     _indexTouchedBone = boneIndex;
@@ -212,6 +280,15 @@ $.fn.polygon = function(properties = {}) {
 
                 if (hasPolygonTouch(x, y, i))
                 {
+                    if (event.shiftKey)
+                    {
+                        polygons.splice(i, 1);
+                        _indexTouchedPolygon = -1;
+                        startX = 0;
+                        startY = 0;
+                        break;
+                    }
+
                     _indexTouchedPolygon = i;
                     startX = x;
                     startY = y;
@@ -219,6 +296,8 @@ $.fn.polygon = function(properties = {}) {
                     break;
                 }
             }
+
+            invalidateAll();
         });
 
         $(currentElement).mousemove(function (event)
@@ -227,7 +306,7 @@ $.fn.polygon = function(properties = {}) {
             var x = event.offsetX;
             var y = event.offsetY;
 
-            if (_indexTouchedPolygon == -1)
+            if (_indexTouchedPolygon == -1 || __editMode)
             {
                 return;
             }
@@ -236,13 +315,6 @@ $.fn.polygon = function(properties = {}) {
             {
                 polygons[_indexTouchedPolygon].points[_indexTouchedBone].x = x;
                 polygons[_indexTouchedPolygon].points[_indexTouchedBone].y = y;
-
-                // if first bone need move first and last point
-                if (_indexTouchedBone == 0)
-                {
-                    polygons[_indexTouchedPolygon].points[polygons[_indexTouchedPolygon].points.length - 1].x = x;
-                    polygons[_indexTouchedPolygon].points[polygons[_indexTouchedPolygon].points.length - 1].y = y;
-                }
 
                 invalidateAll();
                 return;
@@ -270,7 +342,7 @@ $.fn.polygon = function(properties = {}) {
             var x = event.offsetX;
             var y = event.offsetY;
 
-            if (_indexTouchedPolygon == -1)
+            if (_indexTouchedPolygon == -1 || __editMode)
             {
                 return;
             }
@@ -280,14 +352,6 @@ $.fn.polygon = function(properties = {}) {
                 polygons[_indexTouchedPolygon].points[_indexTouchedBone].x = x;
                 polygons[_indexTouchedPolygon].points[_indexTouchedBone].y = y;
                 polygons[_indexTouchedPolygon].points[_indexTouchedBone].isSelected = false;
-
-                // if first bone need move first and last point
-                if (_indexTouchedBone == 0)
-                {
-                    polygons[_indexTouchedPolygon].points[polygons[_indexTouchedPolygon].points.length - 1].x = x;
-                    polygons[_indexTouchedPolygon].points[polygons[_indexTouchedPolygon].points.length - 1].y = y;
-                    polygons[_indexTouchedPolygon].points[polygons[_indexTouchedPolygon].points.length - 1].isSelected = false;
-                }
 
                 _indexTouchedPolygon = -1;
                 _indexTouchedBone = -1;

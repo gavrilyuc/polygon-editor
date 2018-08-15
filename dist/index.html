@@ -4,16 +4,27 @@
   <meta charset='utf-8'>
   <meta name="viewport" content="width=device-width,height=device-height, user-scalable=no" />
   <title>demo</title>
-  <link rel="stylesheet" href="polygon.css" />
   <script src="jquery-3.3.1.min.js"></script>
   <script src="polygon.min.js"></script>
 </head>
 <body>
-  <div>
-    creaating new polygone = ctrl + mousedown
-  </div>
 <div>
-    <canvas width="500" height="500" id='map' style="border:1px solid black;"></canvas>
+    <span>
+        If your need create a polygon, press the "ctrl" button and click mouse left button on editor
+    </span>
+</div>
+<div>
+    <span>
+        If your need delete a polygon, press the "shift" and click mouse left button on polygon or bone
+    </span>
+</div>
+<div>
+    <span>
+        If your need add bone of polygon set the <input type="button" value="Edit Mode" id="editMode" />
+    </span>
+</div>
+<div>
+    <canvas width="800" height="600" id='map' style="border:1px solid black;"></canvas>
 </div>
 <div>
     <select id="pType">
@@ -25,6 +36,9 @@
 <div>
   <textarea id="r"></textarea>
   <input type="button" id="getjson" value="get json" />
+</div>
+<div>
+    
 </div>
 <script type="text/javascript">
     var polygon = $('#map').polygon({
@@ -57,6 +71,12 @@
     $('#getjson').click(function (){
       $('#r').val(polygon.getJson());
     });
+
+    var img = document.getElementById('urlstreaming');
+    img.onload = function (e) {
+        map.width = img.naturalWidth;
+        map.height = img.naturalHeight;
+    };
 </script>
 </body>
 </html>
