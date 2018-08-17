@@ -37,9 +37,6 @@
   <textarea id="r"></textarea>
   <input type="button" id="getjson" value="get json" />
 </div>
-<div>
-    
-</div>
 <script type="text/javascript">
     var polygon = $('#map').polygon({
       colors: {
@@ -71,12 +68,6 @@
     $('#getjson').click(function (){
       $('#r').val(polygon.getJson());
     });
-
-    var img = document.getElementById('urlstreaming');
-    img.onload = function (e) {
-        map.width = img.naturalWidth;
-        map.height = img.naturalHeight;
-    };
 </script>
 </body>
 </html>
